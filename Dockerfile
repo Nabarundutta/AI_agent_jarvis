@@ -2,11 +2,12 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-# Install system dependencies for PyAudio and other packages
+# Install system dependencies for PyAudio, ffmpeg, etc.
 RUN apt-get update && apt-get install -y \
     build-essential \
     pkg-config \
     git \
+    curl \
     libasound2-dev \
     libportaudio2 \
     libportaudiocpp0 \
@@ -16,19 +17,20 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first to leverage Docker cache
+# Install uv (requires curl or wget)
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Ensure uv is in PATH (add /root/.cargo/bin if necessary)
+ENV PATH="/root/.cargo/bin:$PATH"
+
+# Copy and modify requirements to exclude pyaudio
 COPY requirements.txt .
+RUN grep -v "pyaudio" requirements.txt > requirements_no_pyaudio.txt
 
-# Set environment variables to help find portaudio
-ENV PORTAUDIO_PATH=/usr/include/portaudio.h
-ENV CFLAGS="-I/usr/include"
-ENV LDFLAGS="-L/usr/lib"
-
-# Install Python dependencies
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir portaudio19-dev && \
-    pip install --no-cache-dir pyaudio && \
-    pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies using uv
+RUN uv pip install --system --upgrade pip && \
+    uv pip install --system -r requirements_no_pyaudio.txt && \
+    uv pip install --system --no-build-isolation "pyaudio==0.2.13"
 
 # Copy application code
 COPY . .
