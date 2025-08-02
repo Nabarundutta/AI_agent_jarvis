@@ -1,0 +1,15 @@
+opencv-python
+numpy
+python-dotenv
+groq
+langchain 
+langgraph
+langchain_google-genai
+langchain_core
+speechrecognition
+pydub
+pyaudio
+ffmpeg
+gtts
+gradio
+elevenlabs
